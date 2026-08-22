@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Rate Check</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0A0D12">
+<style>
+  :root{
+    --bg:#0A0D12;
+    --surface:#12161D;
+    --surface2:#171D26;
+    --border:#232A35;
+    --text:#EDF1F5;
+    --text-dim:#8892A0;
+    --amber:#FFB020;
+    --green:#34D399;
+    --red:#F87171;
+    --accent:#FFB020;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  body{
+    padding: calc(env(safe-area-inset-top) + 14px) 14px calc(env(safe-area-inset-bottom) + 24px);
+    max-width:520px; margin:0 auto;
+  }
+  h1{font-size:15px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+     color:var(--text-dim); margin:0 0 2px;}
+  .subtitle{font-size:12px; color:var(--text-dim); margin:0 0 16px;}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:16px;
+        padding:16px; margin-bottom:12px;}
+  label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+        color:var(--text-dim); margin-bottom:6px; font-weight:600;}
+  select, input[type=number]{
+    width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    font-size:17px; padding:11px 12px; border-radius:10px; font-family:inherit;
+    font-variant-numeric:tabular-nums;
+  }
+  .row{display:flex; gap:10px;}
+  .row > div{flex:1;}
+  .row2{display:flex; gap:10px; margin-top:10px;}
+
+  /* Hero readout */
+  .hero{display:flex; align-items:center; gap:16px;}
+  .ring-wrap{position:relative; width:112px; height:112px; flex-shrink:0;}
+  .ring{
+    width:112px; height:112px; border-radius:50%;
+    background: conic-gradient(var(--accent) calc(var(--pct,0)*1%), var(--surface2) 0);
+    -webkit-mask: radial-gradient(farthest-side, transparent 66%, #000 67%);
+            mask: radial-gradient(farthest-side, transparent 66%, #000 67%);
+    transition: background .3s ease;
+  }
+  .ring-label{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    flex-direction:column;
+  }
+  .rate-value{font-size:26px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em;
+    color:var(--accent); transition:color .3s ease;}
+  .rate-unit{font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em; margin-top:-2px;}
+  .hero-meta{flex:1;}
+  .verdict{font-size:15px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; color:var(--accent);}
+  .hero-detail{font-size:12.5px; color:var(--text-dim); line-height:1.5; margin-top:4px;}
+
+  .settings-toggle{font-size:12px; color:var(--text-dim); text-align:right; margin-top:10px;
+    text-decoration:underline; cursor:pointer;}
+  .settings{display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);}
+  .settings.open{display:block;}
+
+  /* Grid of areas */
+  .grid-head{display:flex; justify-content:space-between; align-items:baseline; margin:20px 0 8px;}
+  .grid-head h2{font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); margin:0;}
+  .updated{font-size:11px; color:var(--text-dim);}
+  .area-card{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:12px 14px; margin-bottom:8px;
+  }
+  .area-card.selected{border-color:var(--accent);}
+  .area-name{font-size:14.5px; font-weight:600;}
+  .area-sub{font-size:11.5px; color:var(--text-dim); margin-top:2px;}
+  .area-times{text-align:right; font-variant-numeric:tabular-nums;}
+  .area-rt{font-size:15px; font-weight:700;}
+  .area-delay{font-size:11px; color:var(--amber); margin-top:2px;}
+  .area-err{font-size:11.5px; color:var(--red);}
+
+  .controls{display:flex; gap:10px; align-items:center; margin-top:4px;}
+  button{
+    background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    font-size:14px; font-weight:600; padding:11px 16px; border-radius:10px; font-family:inherit;
+  }
+  button:active{opacity:.7;}
+  .auto{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-dim);}
+
+  .banner{background:#3A2A12; border:1px solid #6B4E1E; color:#FFD98A; font-size:13px;
+    padding:12px 14px; border-radius:12px; margin-bottom:12px; line-height:1.5;}
+  .banner.error{background:#3A1616; border-color:#6B2626; color:#FFB3B3;}
+  .banner code{background:rgba(255,255,255,.08); padding:1px 5px; border-radius:4px; font-size:12px;}
+
+  footer{margin-top:22px; font-size:11.5px; color:var(--text-dim); line-height:1.6; text-align:center;}
+</style>
+</head>
+<body>
+
+  <h1>Delivery Rate Check</h1>
+  <p class="subtitle">Live traffic times from Newbury town centre — decide before you accept.</p>
+
+  <div id="keyBanner" class="banner" style="display:none;">
+    No Google Maps API key set yet. Open this file, find
+    <code>GOOGLE_MAPS_API_KEY</code> near the top of the script, and paste your key in.
+  </div>
+  <div id="errorBanner" class="banner error" style="display:none;"></div>
+
+  <!-- Calculator -->
+  <div class="card">
+    <label for="areaSelect">Delivery area</label>
+    <select id="areaSelect"></select>
+
+    <div class="row2">
+      <div>
+        <label for="feeInput">Fee offered (£)</label>
+        <input id="feeInput" type="number" inputmode="decimal" min="0" step="0.5" placeholder="e.g. 5.50">
+      </div>
+    </div>
+
+    <div style="height:14px;"></div>
+
+    <div class="hero">
+      <div class="ring-wrap">
+        <div class="ring" id="ring"></div>
+        <div class="ring-label">
+          <div class="rate-value" id="rateValue">£–</div>
+          <div class="rate-unit">per hr</div>
+        </div>
+      </div>
+      <div class="hero-meta">
+        <div class="verdict" id="verdict">Add a fee</div>
+        <div class="hero-detail" id="heroDetail">Pick an area and enter what Deliveroo is offering.</div>
+      </div>
+    </div>
+
+    <div class="settings-toggle" id="settingsToggle">Adjust buffer / target rate ▾</div>
+    <div class="settings" id="settingsPanel">
+      <div class="row">
+        <div>
+          <label for="bufferInput">Pickup/dropoff buffer (min)</label>
+          <input id="bufferInput" type="number" inputmode="numeric" min="0" max="60" step="1">
+        </div>
+        <div>
+          <label for="targetInput">Target rate (£/hr)</label>
+          <input id="targetInput" type="number" inputmode="decimal" min="0" step="0.5">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live grid -->
+  <div class="grid-head">
+    <h2>Live times · round trip</h2>
+    <span class="updated" id="updated">not loaded</span>
+  </div>
+  <div id="areaGrid"></div>
+
+  <div class="controls">
+    <button id="refreshBtn">Refresh now</button>
+    <div class="auto">
+      <input type="checkbox" id="autoRefresh">
+      <label for="autoRefresh" style="margin:0; text-transform:none; font-weight:400; color:inherit;">Auto every 3 min</label>
+    </div>
+  </div>
+
+  <footer>
+    Estimates only — always sanity-check against what Deliveroo actually shows.<br>
+    Check this before you set off, not while driving.
+  </footer>
+
+<script>
+  // ============= EDIT THESE =============
+  const GOOGLE_MAPS_API_KEY = "AIzaSyAd1ZVtJlin-X2BPAwUve7t0osliLw37gI";
+
+  const ORIGIN = "Newbury town centre, Newbury, UK";
+
+  const AREAS = [
+    { name: "Donnington",              address: "Donnington, Newbury, UK" },
+    { name: "Speen",                   address: "Speen, Newbury, UK" },
+    { name: "Beenham Hill (Thatcham)", address: "Beenham Hill, Thatcham, UK" },
+    { name: "Greenham",                address: "Greenham, Newbury, UK" },
+    { name: "Wash Common",             address: "Wash Common, Newbury, UK" },
+    { name: "Wash Water",              address: "Wash Water, Newbury, UK" },
+    { name: "Thatcham Broadway",       address: "Broadway, Thatcham, UK" },
+    { name: "Cold Ash",                address: "Cold Ash, Thatcham, UK" },
+  ];
+
+  const DEFAULT_BUFFER_MIN = 7;
+  const DEFAULT_TARGET_RATE = 12;
+  const AUTO_REFRESH_MS = 3 * 60 * 1000;
+  // ========================================
+
+  const areaData = {};
+  let service = null;
+  let lastUpdated = null;
+  let autoTimer = null;
+
+  const $ = id => document.getElementById(id);
+
+  function fmtMin(totalMinutes){
+    const m = Math.round(totalMinutes);
+    if (m >= 60) return Math.floor(m/60) + "h " + (m%60) + "m";
+    return m + " min";
+  }
+
+  function populateAreaSelect(){
+    const sel = $("areaSelect");
+    sel.innerHTML = AREAS.map(a => `<option value="${a.name}">${a.name}</option>`).join("");
+  }
+
+  function setupInputs(){
+    $("bufferInput").value = DEFAULT_BUFFER_MIN;
+    $("targetInput").value = DEFAULT_TARGET_RATE;
+    ["areaSelect","feeInput","bufferInput","targetInput"].forEach(id=>{
+      $(id).addEventListener("input", recompute);
+      $(id).addEventListener("change", recompute);
+    });
+    $("settingsToggle").addEventListener("click", ()=>{
+      $("settingsPanel").classList.toggle("open");
+    });
+    $("refreshBtn").addEventListener("click", fetchTimes);
+    $("autoRefresh").addEventListener("change", (e)=>{
+      if (e.target.checked){
+        autoTimer = setInterval(fetchTimes, AUTO_REFRESH_MS);
+      } else if (autoTimer){
+        clearInterval(autoTimer); autoTimer = null;
+      }
+    });
+  }
+
+  function loadGoogleMaps(){
+    if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === "PASTE_YOUR_API_KEY_HERE"){
+      $("keyBanner").style.display = "block";
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=onMapsReady`;
+    s.async = true;
+    s.onerror = () => showError("Couldn't load Google Maps — check your connection and API key.");
+    document.head.appendChild(s);
+  }
+
+  window.onMapsReady = function(){
+    service = new google.maps.DistanceMatrixService();
+    fetchTimes();
+  };
+
+  function showError(msg){
+    const b = $("errorBanner");
+    b.textContent = msg;
+    b.style.display = "block";
+  }
+  function clearError(){ $("errorBanner").style.display = "none"; }
+
+  function fetchTimes(){
+    if (!service) return;
+    clearError();
+    $("updated").textContent = "updating…";
+    const destAddrs = AREAS.map(a => a.address);
+    const common = {
+      travelMode: google.maps.TravelMode.DRIVING,
+      drivingOptions: { departureTime: new Date(), trafficModel: google.maps.TrafficModel.BEST_GUESS },
+      unitSystem: google.maps.UnitSystem.IMPERIAL
+    };
+
+    service.getDistanceMatrix({ origins: [ORIGIN], destinations: destAddrs, ...common }, (res, status) => {
+      if (status !== "OK"){ showError("Outbound times failed: " + status); return; }
+      res.rows[0].elements.forEach((el, i) => {
+        const name = AREAS[i].name;
+        areaData[name] = areaData[name] || {};
+        if (el.status === "OK"){
+          const dur = el.duration_in_traffic || el.duration;
+          areaData[name].outboundSec = dur.value;
+          areaData[name].distanceMiles = el.distance.value / 1609.34;
+          areaData[name].distanceText = el.distance.text;
+          areaData[name].delaySec = el.duration_in_traffic ? (el.duration_in_traffic.value - el.duration.value) : 0;
+          areaData[name].error = null;
+        } else {
+          areaData[name].error = el.status;
+        }
+      });
+
+      service.getDistanceMatrix({ origins: destAddrs, destinations: [ORIGIN], ...common }, (res2, status2) => {
+        if (status2 === "OK"){
+          res2.rows.forEach((row, i) => {
+            const name = AREAS[i].name;
+            const el = row.elements[0];
+            if (el.status === "OK"){
+              const dur = el.duration_in_traffic || el.duration;
+              areaData[name].returnSec = dur.value;
+            }
+          });
+        }
+        lastUpdated = new Date();
+        $("updated").textContent = "updated " + lastUpdated.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        renderGrid();
+        recompute();
+      });
+    });
+  }
+
+  function renderGrid(){
+    const sel = $("areaSelect").value;
+    const html = AREAS.map(a => {
+      const d = areaData[a.name] || {};
+      if (d.error){
+        return `<div class="area-card${a.name===sel?' selected':''}">
+          <div><div class="area-name">${a.name}</div><div class="area-err">Couldn't locate this address — edit it in the file</div></div>
+        </div>`;
+      }
+      if (!d.outboundSec || !d.returnSec){
+        return `<div class="area-card${a.name===sel?' selected':''}">
+          <div class="area-name">${a.name}</div><div class="area-times">…</div>
+        </div>`;
+      }
+      const rtMin = (d.outboundSec + d.returnSec) / 60;
+      const delayNote = d.delaySec > 60 ? `+${Math.round(d.delaySec/60)} min traffic` : "";
+      return `<div class="area-card${a.name===sel?' selected':''}">
+        <div>
+          <div class="area-name">${a.name}</div>
+          <div class="area-sub">${d.distanceText} one-way</div>
+        </div>
+        <div class="area-times">
+          <div class="area-rt">${fmtMin(rtMin)}</div>
+          ${delayNote ? `<div class="area-delay">${delayNote}</div>` : ""}
+        </div>
+      </div>`;
+    }).join("");
+    $("areaGrid").innerHTML = html;
+  }
+
+  function recompute(){
+    const name = $("areaSelect").value;
+    const fee = parseFloat($("feeInput").value);
+    const buffer = parseFloat($("bufferInput").value) || 0;
+    const target = parseFloat($("targetInput").value) || 0;
+    const d = areaData[name];
+
+    renderGrid();
+
+    if (!d || !d.outboundSec || !d.returnSec){
+      $("rateValue").textContent = "£–";
+      $("verdict").textContent = "Waiting on times";
+      $("heroDetail").textContent = "Live times for this area haven't loaded yet.";
+      setRing(0, "#8892A0");
+      return;
+    }
+
+    const totalMin = (d.outboundSec + d.returnSec) / 60 + buffer;
+    $("heroDetail").innerHTML = `${fmtMin(totalMin)} total (there, back &amp; buffer) · ${d.distanceText} one-way`;
+
+    if (!fee || fee <= 0){
+      $("rateValue").textContent = "£–";
+      $("verdict").textContent = "Add a fee";
+      setRing(0, "#8892A0");
+      return;
+    }
+
+    const rate = fee / (totalMin / 60);
+    const perMile = d.distanceMiles > 0 ? fee / d.distanceMiles : null;
+
+    $("rateValue").textContent = "£" + rate.toFixed(2);
+    $("heroDetail").innerHTML += perMile ? ` · £${perMile.toFixed(2)}/mile` : "";
+
+    let color, verdict;
+    if (target <= 0){ color = "#FFB020"; verdict = "Set a target rate"; }
+    else if (rate >= target){ color = "#34D399"; verdict = "Accept"; }
+    else if (rate >= target * 0.8){ color = "#FFB020"; verdict = "Marginal"; }
+    else { color = "#F87171"; verdict = "Decline"; }
+
+    $("verdict").textContent = verdict;
+    $("verdict").style.color = color;
+    const pct = target > 0 ? Math.min(100, (rate / (target * 1.5)) * 100) : 0;
+    setRing(pct, color);
+  }
+
+  function setRing(pct, color){
+    document.documentElement.style.setProperty("--pct", pct.toFixed(1));
+    document.documentElement.style.setProperty("--accent", color);
+  }
+
+  populateAreaSelect();
+  setupInputs();
+  loadGoogleMaps();
+</script>
+</body>
+</html>
