@@ -124,6 +124,14 @@
         <label for="feeInput">Fee offered (£)</label>
         <input id="feeInput" type="number" inputmode="decimal" min="0" step="0.5" placeholder="e.g. 5.50">
       </div>
+      <div>
+        <label for="demandSelect">Current demand</label>
+        <select id="demandSelect">
+          <option value="notBusy">Not Busy</option>
+          <option value="moderate">Moderate</option>
+          <option value="busy">Busy</option>
+        </select>
+      </div>
     </div>
 
     <div style="height:14px;"></div>
@@ -138,22 +146,15 @@
       </div>
       <div class="hero-meta">
         <div class="verdict" id="verdict">Add a fee</div>
+        <div class="hero-detail" id="targetLine"></div>
         <div class="hero-detail" id="heroDetail">Pick an area and enter what Deliveroo is offering.</div>
       </div>
     </div>
 
-    <div class="settings-toggle" id="settingsToggle">Adjust buffer / target rate ▾</div>
+    <div class="settings-toggle" id="settingsToggle">Adjust pickup/dropoff buffer ▾</div>
     <div class="settings" id="settingsPanel">
-      <div class="row">
-        <div>
-          <label for="bufferInput">Pickup/dropoff buffer (min)</label>
-          <input id="bufferInput" type="number" inputmode="numeric" min="0" max="60" step="1">
-        </div>
-        <div>
-          <label for="targetInput">Target rate (£/hr)</label>
-          <input id="targetInput" type="number" inputmode="decimal" min="0" step="0.5">
-        </div>
-      </div>
+      <label for="bufferInput">Pickup/dropoff buffer (min)</label>
+      <input id="bufferInput" type="number" inputmode="numeric" min="0" max="60" step="1" style="max-width:140px;">
     </div>
   </div>
 
@@ -195,8 +196,13 @@
   ];
 
   const DEFAULT_BUFFER_MIN = 7;
-  const DEFAULT_TARGET_RATE = 12;
   const AUTO_REFRESH_MS = 3 * 60 * 1000;
+
+  // UK National Living Wage (21+). Update each April when the rate changes.
+  const NATIONAL_LIVING_WAGE = 12.71; // from 1 April 2026
+
+  const DEMAND_MULTIPLIERS = { notBusy: 1, moderate: 1.25, busy: 1.5 };
+  const DEMAND_LABELS = { notBusy: "Not Busy", moderate: "Moderate", busy: "Busy" };
   // ========================================
 
   const areaData = {};
@@ -219,8 +225,7 @@
 
   function setupInputs(){
     $("bufferInput").value = DEFAULT_BUFFER_MIN;
-    $("targetInput").value = DEFAULT_TARGET_RATE;
-    ["areaSelect","feeInput","bufferInput","targetInput"].forEach(id=>{
+    ["areaSelect","feeInput","bufferInput","demandSelect"].forEach(id=>{
       $(id).addEventListener("input", recompute);
       $(id).addEventListener("change", recompute);
     });
@@ -342,8 +347,11 @@
     const name = $("areaSelect").value;
     const fee = parseFloat($("feeInput").value);
     const buffer = parseFloat($("bufferInput").value) || 0;
-    const target = parseFloat($("targetInput").value) || 0;
+    const demand = $("demandSelect").value;
+    const target = NATIONAL_LIVING_WAGE * DEMAND_MULTIPLIERS[demand];
     const d = areaData[name];
+
+    $("targetLine").textContent = `Target: £${target.toFixed(2)}/hr (${DEMAND_LABELS[demand]})`;
 
     renderGrid();
 
@@ -372,14 +380,13 @@
     $("heroDetail").innerHTML += perMile ? ` · £${perMile.toFixed(2)}/mile` : "";
 
     let color, verdict;
-    if (target <= 0){ color = "#FFB020"; verdict = "Set a target rate"; }
-    else if (rate >= target){ color = "#34D399"; verdict = "Accept"; }
+    if (rate >= target){ color = "#34D399"; verdict = "Accept"; }
     else if (rate >= target * 0.8){ color = "#FFB020"; verdict = "Marginal"; }
     else { color = "#F87171"; verdict = "Decline"; }
 
     $("verdict").textContent = verdict;
     $("verdict").style.color = color;
-    const pct = target > 0 ? Math.min(100, (rate / (target * 1.5)) * 100) : 0;
+    const pct = Math.min(100, (rate / (target * 1.5)) * 100);
     setRing(pct, color);
   }
 
