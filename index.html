@@ -43,7 +43,7 @@
   .row{display:flex; gap:10px;}
   .row > div{flex:1;}
   .row2{display:flex; gap:10px; margin-top:10px;}
-
+ 
   /* Hero readout */
   .hero{display:flex; align-items:center; gap:16px;}
   .ring-wrap{position:relative; width:112px; height:112px; flex-shrink:0;}
@@ -64,12 +64,12 @@
   .hero-meta{flex:1;}
   .verdict{font-size:15px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; color:var(--accent);}
   .hero-detail{font-size:12.5px; color:var(--text-dim); line-height:1.5; margin-top:4px;}
-
+ 
   .settings-toggle{font-size:12px; color:var(--text-dim); text-align:right; margin-top:10px;
     text-decoration:underline; cursor:pointer;}
   .settings{display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border);}
   .settings.open{display:block;}
-
+ 
   /* Grid of areas */
   .grid-head{display:flex; justify-content:space-between; align-items:baseline; margin:20px 0 8px;}
   .grid-head h2{font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); margin:0;}
@@ -86,7 +86,7 @@
   .area-rt{font-size:15px; font-weight:700;}
   .area-delay{font-size:11px; color:var(--amber); margin-top:2px;}
   .area-err{font-size:11.5px; color:var(--red);}
-
+ 
   .controls{display:flex; gap:10px; align-items:center; margin-top:4px;}
   button{
     background:var(--surface2); border:1px solid var(--border); color:var(--text);
@@ -94,31 +94,31 @@
   }
   button:active{opacity:.7;}
   .auto{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-dim);}
-
+ 
   .banner{background:#3A2A12; border:1px solid #6B4E1E; color:#FFD98A; font-size:13px;
     padding:12px 14px; border-radius:12px; margin-bottom:12px; line-height:1.5;}
   .banner.error{background:#3A1616; border-color:#6B2626; color:#FFB3B3;}
   .banner code{background:rgba(255,255,255,.08); padding:1px 5px; border-radius:4px; font-size:12px;}
-
+ 
   footer{margin-top:22px; font-size:11.5px; color:var(--text-dim); line-height:1.6; text-align:center;}
 </style>
 </head>
 <body>
-
+ 
   <h1>Delivery Rate Check</h1>
   <p class="subtitle">Live traffic times from Newbury town centre — decide before you accept.</p>
-
+ 
   <div id="keyBanner" class="banner" style="display:none;">
     No Google Maps API key set yet. Open this file, find
     <code>GOOGLE_MAPS_API_KEY</code> near the top of the script, and paste your key in.
   </div>
   <div id="errorBanner" class="banner error" style="display:none;"></div>
-
+ 
   <!-- Calculator -->
   <div class="card">
     <label for="areaSelect">Delivery area</label>
     <select id="areaSelect"></select>
-
+ 
     <div class="row2">
       <div>
         <label for="feeInput">Fee offered (£)</label>
@@ -133,9 +133,9 @@
         </select>
       </div>
     </div>
-
+ 
     <div style="height:14px;"></div>
-
+ 
     <div class="hero">
       <div class="ring-wrap">
         <div class="ring" id="ring"></div>
@@ -150,21 +150,21 @@
         <div class="hero-detail" id="heroDetail">Pick an area and enter what Deliveroo is offering.</div>
       </div>
     </div>
-
+ 
     <div class="settings-toggle" id="settingsToggle">Adjust pickup/dropoff buffer ▾</div>
     <div class="settings" id="settingsPanel">
       <label for="bufferInput">Pickup/dropoff buffer (min)</label>
       <input id="bufferInput" type="number" inputmode="numeric" min="0" max="60" step="1" style="max-width:140px;">
     </div>
   </div>
-
+ 
   <!-- Live grid -->
   <div class="grid-head">
     <h2>Live times · round trip</h2>
     <span class="updated" id="updated">not loaded</span>
   </div>
   <div id="areaGrid"></div>
-
+ 
   <div class="controls">
     <button id="refreshBtn">Refresh now</button>
     <div class="auto">
@@ -172,18 +172,18 @@
       <label for="autoRefresh" style="margin:0; text-transform:none; font-weight:400; color:inherit;">Auto every 3 min</label>
     </div>
   </div>
-
+ 
   <footer>
     Estimates only — always sanity-check against what Deliveroo actually shows.<br>
     Check this before you set off, not while driving.
   </footer>
-
+ 
 <script>
   // ============= EDIT THESE =============
   const GOOGLE_MAPS_API_KEY = "AIzaSyAd1ZVtJlin-X2BPAwUve7t0osliLw37gI";
-
+ 
   const ORIGIN = "Newbury town centre, Newbury, UK";
-
+ 
   const AREAS = [
     { name: "Donnington",              address: "Donnington, Newbury, UK" },
     { name: "Speen",                   address: "Speen, Newbury, UK" },
@@ -193,36 +193,48 @@
     { name: "Wash Water",              address: "Wash Water, Newbury, UK" },
     { name: "Thatcham Broadway",       address: "Broadway, Thatcham, UK" },
     { name: "Cold Ash",                address: "Cold Ash, Thatcham, UK" },
+    { name: "Shaw",                    address: "Shaw, Newbury, UK" },
+    { name: "Woodspeen",               address: "Woodspeen, Newbury, UK" },
+    { name: "Stockcross",              address: "Stockcross, Newbury, UK" },
+    { name: "Enborne",                 address: "Enborne, Newbury, UK" },
+    { name: "Enborne Row",             address: "Enborne Row, Newbury, UK" },
+    { name: "Woolton Hill",            address: "Woolton Hill, Newbury, UK" },
+    { name: "Hambridge Lane",          address: "Hambridge Lane, Newbury, UK" },
+    { name: "Henwick",                 address: "Henwick, Thatcham, UK" },
+    { name: "The Moors",               address: "The Moors, Newbury, UK" },
+    { name: "Thatcham Train Station",  address: "Thatcham Railway Station, Thatcham, UK" },
+    { name: "Hermitage",               address: "Hermitage, Thatcham, UK" },
+    { name: "Greenham Business Park",  address: "Greenham Business Park, Newbury, UK" },
   ];
-
+ 
   const DEFAULT_BUFFER_MIN = 7;
   const AUTO_REFRESH_MS = 3 * 60 * 1000;
-
+ 
   // UK National Living Wage (21+). Update each April when the rate changes.
   const NATIONAL_LIVING_WAGE = 12.71; // from 1 April 2026
-
+ 
   const DEMAND_MULTIPLIERS = { notBusy: 1, moderate: 1.25, busy: 1.5 };
   const DEMAND_LABELS = { notBusy: "Not Busy", moderate: "Moderate", busy: "Busy" };
   // ========================================
-
+ 
   const areaData = {};
   let service = null;
   let lastUpdated = null;
   let autoTimer = null;
-
+ 
   const $ = id => document.getElementById(id);
-
+ 
   function fmtMin(totalMinutes){
     const m = Math.round(totalMinutes);
     if (m >= 60) return Math.floor(m/60) + "h " + (m%60) + "m";
     return m + " min";
   }
-
+ 
   function populateAreaSelect(){
     const sel = $("areaSelect");
     sel.innerHTML = AREAS.map(a => `<option value="${a.name}">${a.name}</option>`).join("");
   }
-
+ 
   function setupInputs(){
     $("bufferInput").value = DEFAULT_BUFFER_MIN;
     ["areaSelect","feeInput","bufferInput","demandSelect"].forEach(id=>{
@@ -241,7 +253,7 @@
       }
     });
   }
-
+ 
   function loadGoogleMaps(){
     if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === "PASTE_YOUR_API_KEY_HERE"){
       $("keyBanner").style.display = "block";
@@ -253,19 +265,19 @@
     s.onerror = () => showError("Couldn't load Google Maps — check your connection and API key.");
     document.head.appendChild(s);
   }
-
+ 
   window.onMapsReady = function(){
     service = new google.maps.DistanceMatrixService();
     fetchTimes();
   };
-
+ 
   function showError(msg){
     const b = $("errorBanner");
     b.textContent = msg;
     b.style.display = "block";
   }
   function clearError(){ $("errorBanner").style.display = "none"; }
-
+ 
   function fetchTimes(){
     if (!service) return;
     clearError();
@@ -276,7 +288,7 @@
       drivingOptions: { departureTime: new Date(), trafficModel: google.maps.TrafficModel.BEST_GUESS },
       unitSystem: google.maps.UnitSystem.IMPERIAL
     };
-
+ 
     service.getDistanceMatrix({ origins: [ORIGIN], destinations: destAddrs, ...common }, (res, status) => {
       if (status !== "OK"){ showError("Outbound times failed: " + status); return; }
       res.rows[0].elements.forEach((el, i) => {
@@ -285,6 +297,7 @@
         if (el.status === "OK"){
           const dur = el.duration_in_traffic || el.duration;
           areaData[name].outboundSec = dur.value;
+          areaData[name].outboundHasTraffic = !!el.duration_in_traffic;
           areaData[name].distanceMiles = el.distance.value / 1609.34;
           areaData[name].distanceText = el.distance.text;
           areaData[name].delaySec = el.duration_in_traffic ? (el.duration_in_traffic.value - el.duration.value) : 0;
@@ -293,7 +306,7 @@
           areaData[name].error = el.status;
         }
       });
-
+ 
       service.getDistanceMatrix({ origins: destAddrs, destinations: [ORIGIN], ...common }, (res2, status2) => {
         if (status2 === "OK"){
           res2.rows.forEach((row, i) => {
@@ -302,6 +315,7 @@
             if (el.status === "OK"){
               const dur = el.duration_in_traffic || el.duration;
               areaData[name].returnSec = dur.value;
+              areaData[name].returnHasTraffic = !!el.duration_in_traffic;
             }
           });
         }
@@ -312,7 +326,7 @@
       });
     });
   }
-
+ 
   function renderGrid(){
     const sel = $("areaSelect").value;
     const html = AREAS.map(a => {
@@ -329,10 +343,12 @@
       }
       const rtMin = (d.outboundSec + d.returnSec) / 60;
       const delayNote = d.delaySec > 60 ? `+${Math.round(d.delaySec/60)} min traffic` : "";
+      const noTrafficNote = (!d.outboundHasTraffic || !d.returnHasTraffic) ? "typical time — no live traffic data" : "";
       return `<div class="area-card${a.name===sel?' selected':''}">
         <div>
           <div class="area-name">${a.name}</div>
           <div class="area-sub">${d.distanceText} one-way</div>
+          ${noTrafficNote ? `<div class="area-err">${noTrafficNote}</div>` : ""}
         </div>
         <div class="area-times">
           <div class="area-rt">${fmtMin(rtMin)}</div>
@@ -342,7 +358,7 @@
     }).join("");
     $("areaGrid").innerHTML = html;
   }
-
+ 
   function recompute(){
     const name = $("areaSelect").value;
     const fee = parseFloat($("feeInput").value);
@@ -350,11 +366,11 @@
     const demand = $("demandSelect").value;
     const target = NATIONAL_LIVING_WAGE * DEMAND_MULTIPLIERS[demand];
     const d = areaData[name];
-
+ 
     $("targetLine").textContent = `Target: £${target.toFixed(2)}/hr (${DEMAND_LABELS[demand]})`;
-
+ 
     renderGrid();
-
+ 
     if (!d || !d.outboundSec || !d.returnSec){
       $("rateValue").textContent = "£–";
       $("verdict").textContent = "Waiting on times";
@@ -362,39 +378,39 @@
       setRing(0, "#8892A0");
       return;
     }
-
+ 
     const totalMin = (d.outboundSec + d.returnSec) / 60 + buffer;
     $("heroDetail").innerHTML = `${fmtMin(totalMin)} total (there, back &amp; buffer) · ${d.distanceText} one-way`;
-
+ 
     if (!fee || fee <= 0){
       $("rateValue").textContent = "£–";
       $("verdict").textContent = "Add a fee";
       setRing(0, "#8892A0");
       return;
     }
-
+ 
     const rate = fee / (totalMin / 60);
     const perMile = d.distanceMiles > 0 ? fee / d.distanceMiles : null;
-
+ 
     $("rateValue").textContent = "£" + rate.toFixed(2);
     $("heroDetail").innerHTML += perMile ? ` · £${perMile.toFixed(2)}/mile` : "";
-
+ 
     let color, verdict;
     if (rate >= target){ color = "#34D399"; verdict = "Accept"; }
     else if (rate >= target * 0.8){ color = "#FFB020"; verdict = "Marginal"; }
     else { color = "#F87171"; verdict = "Decline"; }
-
+ 
     $("verdict").textContent = verdict;
     $("verdict").style.color = color;
     const pct = Math.min(100, (rate / (target * 1.5)) * 100);
     setRing(pct, color);
   }
-
+ 
   function setRing(pct, color){
     document.documentElement.style.setProperty("--pct", pct.toFixed(1));
     document.documentElement.style.setProperty("--accent", color);
   }
-
+ 
   populateAreaSelect();
   setupInputs();
   loadGoogleMaps();
