@@ -94,6 +94,23 @@
   }
   button:active{opacity:.7;}
   .auto{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-dim);}
+
+  .tabs{display:flex; gap:8px; margin-bottom:14px;}
+  .tab-btn{flex:1; background:var(--surface); border:1px solid var(--border); color:var(--text-dim);
+    font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+    padding:10px 12px; border-radius:10px; text-align:center; cursor:pointer;}
+  .tab-btn.active{color:var(--bg); background:var(--accent); border-color:var(--accent);}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .thresh-table{width:100%; border-collapse:collapse; margin-top:14px; font-variant-numeric:tabular-nums;}
+  .thresh-table th, .thresh-table td{padding:10px 8px; text-align:center; font-size:13px; border:1px solid var(--border);}
+  .thresh-table th{font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); font-weight:700;}
+  .thresh-table td.demand-label{text-align:left; font-weight:700; color:var(--text);}
+  .thresh-table td.col-decline{color:var(--red);}
+  .thresh-table td.col-marginal{color:var(--amber);}
+  .thresh-table td.col-accept{color:var(--green);}
+  .thresh-note{font-size:11.5px; color:var(--text-dim); margin-top:10px; line-height:1.5;}
  
   .banner{background:#3A2A12; border:1px solid #6B4E1E; color:#FFD98A; font-size:13px;
     padding:12px 14px; border-radius:12px; margin-bottom:12px; line-height:1.5;}
@@ -107,13 +124,20 @@
  
   <h1>Delivery Rate Check</h1>
   <p class="subtitle">Live traffic times from Newbury town centre — decide before you accept.</p>
- 
+
+  <div class="tabs">
+    <div class="tab-btn active" id="tabSingleBtn">Single Check</div>
+    <div class="tab-btn" id="tabTableBtn">Threshold Table</div>
+  </div>
+
   <div id="keyBanner" class="banner" style="display:none;">
     No Google Maps API key set yet. Open this file, find
     <code>GOOGLE_MAPS_API_KEY</code> near the top of the script, and paste your key in.
   </div>
   <div id="errorBanner" class="banner error" style="display:none;"></div>
- 
+
+  <div id="singleView" class="view active">
+
   <!-- Calculator -->
   <div class="card">
     <label for="areaSelect">Delivery area</label>
@@ -172,7 +196,26 @@
       <label for="autoRefresh" style="margin:0; text-transform:none; font-weight:400; color:inherit;">Auto every 3 min</label>
     </div>
   </div>
- 
+
+  </div>
+
+  <div id="tableView" class="view">
+    <div class="card">
+      <label for="tableAreaSelect">Delivery area</label>
+      <select id="tableAreaSelect"></select>
+      <div class="thresh-note" id="tableSummary"></div>
+
+      <table class="thresh-table">
+        <thead>
+          <tr><th></th><th>Decline</th><th>Marginal</th><th>Accept</th></tr>
+        </thead>
+        <tbody id="threshTableBody"></tbody>
+      </table>
+
+      <div class="thresh-note">Marginal = within 10% below the target £/hr for that demand level. Includes the pickup/dropoff buffer set in Single Check.</div>
+    </div>
+  </div>
+
   <footer>
     Estimates only — always sanity-check against what Deliveroo actually shows.<br>
     Check this before you set off, not while driving.
@@ -231,8 +274,18 @@
   }
  
   function populateAreaSelect(){
-    const sel = $("areaSelect");
-    sel.innerHTML = AREAS.map(a => `<option value="${a.name}">${a.name}</option>`).join("");
+    const opts = AREAS.map(a => `<option value="${a.name}">${a.name}</option>`).join("");
+    $("areaSelect").innerHTML = opts;
+    $("tableAreaSelect").innerHTML = opts;
+  }
+
+  function switchView(view){
+    const single = view === "single";
+    $("tabSingleBtn").classList.toggle("active", single);
+    $("tabTableBtn").classList.toggle("active", !single);
+    $("singleView").classList.toggle("active", single);
+    $("tableView").classList.toggle("active", !single);
+    if (!single) renderThresholdTable();
   }
  
   function setupInputs(){
@@ -244,6 +297,9 @@
     $("settingsToggle").addEventListener("click", ()=>{
       $("settingsPanel").classList.toggle("open");
     });
+    $("tabSingleBtn").addEventListener("click", ()=> switchView("single"));
+    $("tabTableBtn").addEventListener("click", ()=> switchView("table"));
+    $("tableAreaSelect").addEventListener("change", renderThresholdTable);
     $("refreshBtn").addEventListener("click", fetchTimes);
     $("autoRefresh").addEventListener("change", (e)=>{
       if (e.target.checked){
@@ -358,7 +414,45 @@
     }).join("");
     $("areaGrid").innerHTML = html;
   }
- 
+
+  function renderThresholdTable(){
+    const tbody = $("threshTableBody");
+    const summary = $("tableSummary");
+    if (!tbody) return;
+
+    const name = $("tableAreaSelect").value;
+    const d = areaData[name];
+    const buffer = parseFloat($("bufferInput").value) || 0;
+
+    if (!d || d.error){
+      tbody.innerHTML = `<tr><td colspan="4" class="thresh-note">Couldn't get live times for this area.</td></tr>`;
+      summary.textContent = "";
+      return;
+    }
+    if (!d.outboundSec || !d.returnSec){
+      tbody.innerHTML = `<tr><td colspan="4" class="thresh-note">Waiting on live times…</td></tr>`;
+      summary.textContent = "";
+      return;
+    }
+
+    const totalMin = (d.outboundSec + d.returnSec) / 60 + buffer;
+    summary.textContent = `${fmtMin(totalMin)} total (there, back & buffer) · ${d.distanceText} one-way`;
+
+    const MARGINAL_BAND = 0.9; // marginal = within 10% below target
+
+    tbody.innerHTML = ["notBusy","moderate","busy"].map(demand => {
+      const target = NATIONAL_LIVING_WAGE * DEMAND_MULTIPLIERS[demand];
+      const marginalFee = target * MARGINAL_BAND * (totalMin / 60);
+      const acceptFee = target * (totalMin / 60);
+      return `<tr>
+        <td class="demand-label">${DEMAND_LABELS[demand]}</td>
+        <td class="col-decline">&lt; £${marginalFee.toFixed(2)}</td>
+        <td class="col-marginal">£${marginalFee.toFixed(2)}–£${acceptFee.toFixed(2)}</td>
+        <td class="col-accept">≥ £${acceptFee.toFixed(2)}</td>
+      </tr>`;
+    }).join("");
+  }
+
   function recompute(){
     const name = $("areaSelect").value;
     const fee = parseFloat($("feeInput").value);
@@ -368,8 +462,9 @@
     const d = areaData[name];
  
     $("targetLine").textContent = `Target: £${target.toFixed(2)}/hr (${DEMAND_LABELS[demand]})`;
- 
+
     renderGrid();
+    renderThresholdTable();
  
     if (!d || !d.outboundSec || !d.returnSec){
       $("rateValue").textContent = "£–";
@@ -397,7 +492,7 @@
  
     let color, verdict;
     if (rate >= target){ color = "#34D399"; verdict = "Accept"; }
-    else if (rate >= target * 0.8){ color = "#FFB020"; verdict = "Marginal"; }
+    else if (rate >= target * 0.9){ color = "#FFB020"; verdict = "Marginal"; }
     else { color = "#F87171"; verdict = "Decline"; }
  
     $("verdict").textContent = verdict;
