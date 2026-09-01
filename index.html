@@ -288,12 +288,29 @@
     if (!single) renderThresholdTable();
   }
  
+  const BUFFER_STORAGE_KEY = "deliveryRateCheck.bufferMinutes";
+
+  function loadSavedBuffer(){
+    try {
+      const saved = localStorage.getItem(BUFFER_STORAGE_KEY);
+      return (saved !== null && saved !== "") ? saved : DEFAULT_BUFFER_MIN;
+    } catch (e){
+      return DEFAULT_BUFFER_MIN;
+    }
+  }
+
+  function saveBuffer(value){
+    try { localStorage.setItem(BUFFER_STORAGE_KEY, value); } catch (e){}
+  }
+
   function setupInputs(){
-    $("bufferInput").value = DEFAULT_BUFFER_MIN;
+    $("bufferInput").value = loadSavedBuffer();
     ["areaSelect","feeInput","bufferInput","demandSelect"].forEach(id=>{
       $(id).addEventListener("input", recompute);
       $(id).addEventListener("change", recompute);
     });
+    $("bufferInput").addEventListener("input", ()=> saveBuffer($("bufferInput").value));
+    $("bufferInput").addEventListener("change", ()=> saveBuffer($("bufferInput").value));
     $("settingsToggle").addEventListener("click", ()=>{
       $("settingsPanel").classList.toggle("open");
     });
